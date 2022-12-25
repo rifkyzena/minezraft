@@ -4,7 +4,12 @@ import { GLTFLoader } from "./examples/jsm/loaders/GLTFLoader.js";
 import { FontLoader } from "./examples/jsm/loaders/FontLoader.js";
 import { TextGeometry } from "./examples/jsm/geometries/TextGeometry.js";
 
-var scene, camera, renderer, font;
+var scene, camera, renderer, txt_minezraft, sun_var;
+var raycaster = new THREE.Raycaster();
+var mouse = new THREE.Vector2();
+var switcher = true;
+var sunObj = new THREE.Object3D();
+var moonObj = new THREE.Object3D();
 
 function createLoader() {
   const loader = new THREE.TextureLoader();
@@ -25,18 +30,6 @@ function plane() {
   mesh.position.set(0, 0, 0);
   mesh.rotation.x = Math.PI / 2;
   mesh.receiveShadow = true;
-  scene.add(mesh);
-}
-
-function box() {
-  let geometry = new THREE.BoxGeometry(10, 10, 10);
-  let material = new THREE.MeshPhongMaterial({
-    color: "#ffffff",
-  });
-
-  let mesh = new THREE.Mesh(geometry, material);
-  mesh.position.y = 20;
-  mesh.castShadow = true;
   scene.add(mesh);
 }
 
@@ -64,6 +57,7 @@ function steve() {
         if (node.isMesh) {
           node.castShadow = true;
           node.receiveShadow = true;
+          node.position.set(0, 0, 16);
         }
       });
       scene.add(gltf.scene);
@@ -89,11 +83,12 @@ function text_minezraft() {
         bevelSegments: 0,
       });
       var txt_mat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-      var txt_mesh = new THREE.Mesh(geometry, txt_mat);
-      txt_mesh.position.set(0, 140, -140);
-      txt_mesh.receiveShadow = true;
-      txt_mesh.castShadow = true;
-      scene.add(txt_mesh);
+      txt_minezraft = new THREE.Mesh(geometry, txt_mat);
+      txt_minezraft.position.set(0, 140, -140);
+      txt_minezraft.receiveShadow = true;
+      txt_minezraft.castShadow = true;
+      txt_minezraft.name = "txt_minezraft";
+      scene.add(txt_minezraft);
     }
   );
 }
@@ -215,7 +210,7 @@ function trunk_leaves() {
     }
   }
   leaves_1(level_new, texture_leaves, stop_count, -60, -55);
-  leaves_2(level_new, texture_leaves, stop_count - 1, 50, 55);
+  leaves_2(level_new - 1, texture_leaves, stop_count - 1, 50, 55);
 }
 
 function leaves_1(level_new, texture_leaves, stop_count, x_params, y_params) {
@@ -273,52 +268,42 @@ function leaves_2(level_new, texture_leaves, stop_count, x_params, y_params) {
   const group_leaves1 = new THREE.Group();
   const group_leaves_lv1 = new THREE.Group();
   const group_leaves_lv2 = new THREE.Group();
-  const group_leaves_lv3 = new THREE.Group();
+
   let stop_x_box,
     stop_z_box = 0;
-
-  for (let level2 = level_new; level2 < level_new + stop_count; level2++) {
+  let sum_lvl_stop = level_new + stop_count;
+  for (let level2 = level_new; level2 < sum_lvl_stop; level2++) {
     let y = 8 + 15 * level2;
-    if (level2 <= (level_new + stop_count)) {
-      stop_x_box = 50;
-      stop_z_box = 5;
-      // } else if (level2 >= 6 && level2 < 7) {
-      //   stop_x_box = -30;
-      //   stop_z_box = -25;
-      // } else {
-      //   stop_x_box = x_params;
-      //   stop_z_box = y_params;
+    if (level2 < sum_lvl_stop - 1) {
+      stop_x_box = x_params - 15;
+      stop_z_box = y_params - 15;
+    } else {
+      stop_x_box = 15;
+      stop_z_box = 15;
     }
-    
-    for (let x_box = 0; x_box <= stop_x_box; x_box += 15) {
-      let leaves1 = tress(x_box, y, y_params, texture_leaves);
-      
-      if (level2 <= level_new + stop_count) {
-        
+
+    for (let x_box = 0; x_box < stop_x_box; x_box += 15) {
+      let leaves1 = tress(x_box, y, x_box, texture_leaves);
+      if (level2 < sum_lvl_stop - 1) {
         group_leaves_lv1.add(leaves1);
-        // } else if (level2 >= 6 && level2 < 7) {
-        //   group_leaves_lv2.add(leaves1);
-        // } else {
-        //   group_leaves_lv3.add(leaves1);
+      } else {
+        group_leaves_lv2.add(leaves1);
       }
-      for (let z_box = y_params; z_box <= stop_z_box; z_box -= 15) {
+      for (let z_box = 0; z_box < stop_z_box; z_box += 15) {
         let leaves2 = tress(x_box, y, z_box, texture_leaves);
-        if (level2 <= level_new + stop_count) {
+        if (level2 < sum_lvl_stop - 1) {
           group_leaves_lv1.add(leaves2);
-          // } else if (level2 >= 6 && level2 < 7) {
-          //   group_leaves_lv2.add(leaves2);
-          // } else {
-          //   group_leaves_lv3.add(leaves2);
+        } else {
+          group_leaves_lv2.add(leaves2);
         }
       }
     }
   }
 
-  group_leaves_lv1.position.set(-30, 0, -30);
-  // group_leaves_lv2.position.set(-15, 0, -15);
-  // group_leaves1.add(group_leaves_lv1);
-  // group_leaves1.add(group_leaves_lv2);
-  // group_leaves1.add(group_leaves_lv3);
+  group_leaves_lv1.position.set(x_params - 15, 0, y_params - 15);
+  group_leaves_lv2.position.set(x_params, 0, y_params);
+  group_leaves1.add(group_leaves_lv1);
+  group_leaves1.add(group_leaves_lv2);
   scene.add(group_leaves1);
 }
 
@@ -335,20 +320,101 @@ function tress(x, y, z, texture) {
   return mesh;
 }
 
+function skybox_day() {
+  var path = "./assets/skybox/skyboxDay/";
+  var format = ".png";
+
+  var urls = [
+    path + "px" + format,
+    path + "nx" + format,
+    path + "py" + format,
+    path + "ny" + format,
+    path + "pz" + format,
+    path + "nz" + format,
+  ];
+
+  const materialArray = urls.map((image) => {
+    let texture = new THREE.TextureLoader().load(image);
+
+    return new THREE.MeshBasicMaterial({ map: texture, side: THREE.BackSide });
+  });
+  let skyboxGeo = new THREE.BoxGeometry(1200, 1200, 1200);
+  let skybox = new THREE.Mesh(skyboxGeo, materialArray);
+
+  scene.add(skybox);
+  sun();
+}
+
+function skybox_night() {
+  var path = "./assets/skybox/skyboxNight/";
+  var format = ".png";
+
+  var urls = [
+    path + "px" + format,
+    path + "nx" + format,
+    path + "py" + format,
+    path + "ny" + format,
+    path + "pz" + format,
+    path + "nz" + format,
+  ];
+
+  const materialArray = urls.map((image) => {
+    let texture = new THREE.TextureLoader().load(image);
+
+    return new THREE.MeshBasicMaterial({ map: texture, side: THREE.BackSide });
+  });
+  let skyboxGeo = new THREE.BoxGeometry(1200, 1200, 1200);
+  let skybox = new THREE.Mesh(skyboxGeo, materialArray);
+
+  scene.add(skybox);
+  moon();
+}
+
+function sun() {
+  const texture = createLoader().load("./assets/texture/sun.jpg");
+
+  const geometry = new THREE.SphereGeometry(15, 64, 64);
+  const material = new THREE.MeshPhongMaterial({
+    color: 0xffd500,
+    map: texture,
+  });
+  sun_var = new THREE.Mesh(geometry, material);
+  sun_var.position.set(140, 280, -600);
+
+  sunObj.add(sun_var);
+  scene.add(sunObj);
+}
+
+function moon() {
+  const texture = createLoader().load("./assets/texture/moon.jpg");
+
+  const geometry = new THREE.SphereGeometry(15, 64, 64);
+  const material = new THREE.MeshPhongMaterial({
+    color: 0xffffff,
+    map: texture,
+  });
+  const sphere = new THREE.Mesh(geometry, material);
+  sphere.position.set(140, 280, -600);
+  sphere.receiveShadow = false;
+
+  moonObj.add(sphere);
+  scene.add(moonObj);
+}
+
 function init() {
   const fov = 45;
   const aspect = window.innerWidth / window.innerHeight;
   const near = 0.1;
-  const far = 1000;
+  const far = 10000;
 
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
   camera.position.set(0, 50, 220);
-  // camera.lookAt(0, 0, 0);
 
+  scene.background = null;
   renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.setClearColor("#87CEEB"); //sky
+  
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFShadowMap;
 
@@ -360,14 +426,28 @@ function init() {
   plane();
   pointLight();
   spotLight();
-  // steve();
+  steve();
   text_minezraft();
   creeper();
   trunk_leaves();
+  skybox_day();
+
   window.addEventListener("resize", resize, false);
+  window.addEventListener("click", onMouseClick, false);
+  window.addEventListener("pointermove", onPointerMove);
+  window.addEventListener("keydown", onDocumentKeyDown, false);
 }
+
+function animate() {
+  if (switcher == true) {
+    sunObj.rotateY(0.004);
+  } else {
+    moonObj.rotateY(0.004);
+  }
+}
+
 function render() {
-  requestAnimationFrame(render);
+  window.requestAnimationFrame(render);
   renderer.render(scene, camera);
 }
 
@@ -375,6 +455,57 @@ function resize() {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+function onMouseClick(event) {
+  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+  // update the picking ray with the camera and pointer position
+  raycaster.setFromCamera(mouse, camera);
+
+  // calculate objects intersecting the picking ray
+  const intersects = raycaster.intersectObjects(scene.children);
+
+  if (intersects[0].object.name == "txt_minezraft") {
+    switcher == true ? skybox_night() : skybox_day();
+    switcher = !switcher;
+
+    if (switcher == true) {
+      scene.remove(moonObj)
+    } else {
+      scene.remove(sunObj)
+    }
+  }
+
+  requestAnimationFrame(render);
+  renderer.render(scene, camera);
+}
+
+function onPointerMove(event) {
+  // calculate pointer position in normalized device coordinates
+  // (-1 to +1) for both components
+
+  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+  raycaster.setFromCamera(mouse, camera);
+
+  // calculate objects intersecting the picking ray
+  const intersects = raycaster.intersectObjects(scene.children);
+
+  for (let i = 0; i < intersects.length; i++) {
+    if (intersects[0].object.name == "txt_minezraft") {
+      intersects[0].object.material.color.set(0x45b6fe);
+    }
+  }
+  renderer.render(scene, camera);
+}
+
+function onDocumentKeyDown(event) {
+  var keyCode = event.which;
+  if (keyCode == 32) { //spaceBar
+    renderer.setAnimationLoop(animate);
+  }
+  render();
 }
 
 window.onload = function () {
