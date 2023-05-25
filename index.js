@@ -3,7 +3,7 @@ import { OrbitControls } from "./examples/jsm/controls/OrbitControls.js";
 import { GLTFLoader } from "./examples/jsm/loaders/GLTFLoader.js";
 import { FontLoader } from "./examples/jsm/loaders/FontLoader.js";
 import { TextGeometry } from "./examples/jsm/geometries/TextGeometry.js";
-// let's add some more maybe later
+// let's add some more maybe later let's try again
 var scene, camera, renderer, txt_minezraft, sun_var;
 var raycaster = new THREE.Raycaster();
 var mouse = new THREE.Vector2();
